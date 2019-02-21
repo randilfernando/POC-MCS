@@ -1,15 +1,9 @@
 package com.alternate.djangocs.mongo.services;
 
-import org.bson.BsonDocument;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
 @Service
 public class ResumeTokenServiceImpl implements ResumeTokenService {
@@ -18,22 +12,20 @@ public class ResumeTokenServiceImpl implements ResumeTokenService {
     private String resumeTokenFile;
 
     @Override
-    public void updateToken(BsonDocument token) throws IOException {
+    public void updateToken(String token) throws IOException {
         final File file = new File(resumeTokenFile);
 
         if (!file.exists()) {
             file.createNewFile();
         }
 
-        String json = token.toJson();
-
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            writer.write(json);
+            writer.write(token);
         }
     }
 
     @Override
-    public BsonDocument getToken() throws IOException {
+    public String getToken() throws IOException {
         final File file = new File(resumeTokenFile);
 
         if (!file.exists()) {
@@ -46,8 +38,6 @@ public class ResumeTokenServiceImpl implements ResumeTokenService {
             line = reader.readLine();
         }
 
-        return (line != null)
-                ? BsonDocument.parse(line)
-                : null;
+        return line;
     }
 }

@@ -1,11 +1,16 @@
 package com.alternate.djangocs.mongo.models;
 
 public class Event {
+    private String _id;
     private String eventName;
     private String user;
     private String eventReference;
     private String eventTime;
     private boolean processed;
+
+    public String get_id() {
+        return _id;
+    }
 
     public String getEventName() {
         return eventName;
@@ -25,6 +30,11 @@ public class Event {
 
     public boolean isProcessed() {
         return processed;
+    }
+
+    public Event withId(String _id) {
+        this._id = _id;
+        return this;
     }
 
     public Event withEventName(String eventName) {

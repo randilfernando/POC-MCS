@@ -1,26 +1,39 @@
 package com.alternate.djangocs;
 
-import com.alternate.djangocs.mongo.services.MongoEventsStreamConnector;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class DjangoCsApplication {
 
-    private MongoEventsStreamConnector mongoEventsStreamConnector;
+    @Value("${mongo.host}")
+    private String mongoHost;
 
-    @Autowired
-    public DjangoCsApplication(MongoEventsStreamConnector mongoEventsStreamConnector) {
+    @Value("${mongo.port}")
+    private int mongoPort;
 
-        this.mongoEventsStreamConnector = mongoEventsStreamConnector;
+    @Value("${mongo.db}")
+    private String mongoDb;
+
+    @Bean
+    public MongoClient mongoClient() {
+        return new MongoClient(this.mongoHost, this.mongoPort);
     }
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady() {
-        this.mongoEventsStreamConnector.init();
+    @Bean
+    public MongoDatabase mongoDatabase(MongoClient mongoClient) {
+        return mongoClient.getDatabase(this.mongoDb);
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper().setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
     }
 
     public static void main(String[] args) {
