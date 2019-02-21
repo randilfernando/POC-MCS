@@ -1,6 +1,6 @@
-import {Injectable} from "@angular/core";
-import {BehaviorSubject, Observable, Subject} from "rxjs";
-import {Queue} from "../models/queue";
+import {Injectable} from '@angular/core';
+import {BehaviorSubject, Observable, Subject} from 'rxjs';
+import {Queue} from '../models/queue';
 
 export enum WebSocketStatus {
   IDLE,
@@ -40,7 +40,13 @@ export class WebSocketService {
   }
 
   public send(msg: any) {
-    const m = JSON.stringify(msg);
+    let m;
+
+    if (typeof msg === 'string') {
+      m = msg;
+    } else {
+      m = JSON.stringify(msg);
+    }
 
     if (this.currentStatus === WebSocketStatus.OPEN) {
       this.ws.send(m);
@@ -98,6 +104,14 @@ export class WebSocketService {
   }
 
   private onMessage(ev) {
-    this.incoming.next(JSON.parse(ev.data));
+    let message;
+
+    if (ev.data.startsWith('{') && ev.data.endsWith('}')) {
+      JSON.parse(ev.data);
+    } else {
+      message = ev.data;
+    }
+
+    this.incoming.next(message);
   }
 }
