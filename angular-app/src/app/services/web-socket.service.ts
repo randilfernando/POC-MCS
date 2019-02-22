@@ -60,7 +60,7 @@ export class WebSocketService {
       return;
     }
 
-    this.ws = new WebSocket('ws://localhost:8080/ws');
+    this.ws = new WebSocket('ws://localhost:8080');
     this.ws.onopen = () => this.onOpen();
     this.ws.onclose = () => this.onClose();
     this.ws.onerror = () => this.onError();
