@@ -39,7 +39,8 @@ export class AppComponent implements OnInit {
     this.webSocketService.incoming$.pipe(
       map(d => d.split('\n')),
       filter(l => l[0] === 'MESSAGE'),
-      map(l => l[2])
+      map(l => l[2]),
+      map(d => JSON.parse(d))
     ).subscribe(d => this.eventStatus[d.event_name] = d.processed);
   }
 }
