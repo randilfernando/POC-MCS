@@ -38,8 +38,7 @@ public class MongoEventsStreamConnectorImpl implements MongoEventsStreamConnecto
     public Flux<EventWrapper> subscribe(BsonDocument token) {
         List<Bson> pipeline = Arrays.asList(
                 Aggregates.match(Filters.in("operationType", Arrays.asList("insert", "update", "replace"))),
-                Aggregates.match(Filters.in("fullDocument.event_name", Arrays.asList("AddNewField", "EditField", "DeleteField",
-                        "UserContractSelection", "AddExample", "ImplicitSearch", "ExplicitSearch"))),
+                Aggregates.match(Filters.in("fullDocument.event_name", Arrays.asList("AddExample", "CopyPaste", "AddSearch"))),
                 Aggregates.match(Filters.eq("fullDocument.processed", true))
         );
 

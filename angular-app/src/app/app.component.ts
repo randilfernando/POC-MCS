@@ -9,8 +9,8 @@ import {filter, map} from 'rxjs/operators';
 export class AppComponent implements OnInit {
 
   eventStatus = {
-    AddNewField: false,
-    EditField: false,
+    AddExample: false,
+    CopyPaste: false,
     DeleteField: false
   };
 
