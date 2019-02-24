@@ -46,7 +46,7 @@ public class MongoEventsStreamConnectorImpl implements MongoEventsStreamConnecto
         return Flux.create(s -> {
             LOGGER.info("mongo change stream listener started");
 
-            ChangeStreamIterable<Document> iterable = this.mongoDatabase
+            ChangeStreamIterable<Document> iterable = this.mongoDatabase.getCollection("events")
                     .watch(pipeline)
                     .fullDocument(FullDocument.UPDATE_LOOKUP);
 

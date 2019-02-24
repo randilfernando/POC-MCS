@@ -1,6 +1,7 @@
 import {Injectable} from '@angular/core';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {Queue} from '../models/queue';
+import {environment} from '../../environments/environment';
 
 export enum WebSocketStatus {
   IDLE,
@@ -60,7 +61,7 @@ export class WebSocketService {
       return;
     }
 
-    this.ws = new WebSocket('ws://localhost:8080');
+    this.ws = new WebSocket(environment.webSocketUrl);
     this.ws.onopen = () => this.onOpen();
     this.ws.onclose = () => this.onClose();
     this.ws.onerror = () => this.onError();
@@ -79,7 +80,6 @@ export class WebSocketService {
 
   private onOpen() {
     this.currentStatus = WebSocketStatus.OPEN;
-    console.log('WS Connected');
     this.status.next(WebSocketStatus.OPEN);
     this.outgoing.forEach(m => this.ws.send(m));
   }

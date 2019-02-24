@@ -1,77 +1,137 @@
+import threading
+
 import websocket
-from pymongo import MongoClient
-from tornado import websocket as websocket_t
-import tornado.ioloop
-from threading import Thread
-import json
+from websocket_server import WebsocketServer
 
-client = MongoClient('localhost', 27017)
-db = client['demo']
-events = db['events']
-
-try:
-    import server_thread
-except ImportError:
-    import _thread as server_thread
+api_server_port = 8000
+cs_client_url = 'ws://localhost:8080/ws'
+oll_client_url = 'ws://localhost:9000'
 
 
-def on_message(ws, message):
-    parts = message.split("\n")
-    print(parts[len(parts) - 1])
+class EventsProcessor:
+    @staticmethod
+    def process(message):
+        parts = message.split("\n")
+        print('message received: ' + parts[2])
+
+        command = parts[0]
+
+        if command == "MESSAGE":
+            WebSoketAPIServerHandler.send_to_all(message)
+
+            print('Event transferred to client')
+        elif command == "INSERT":
+            WebSocketOLLClientHandler.send_message(message)
+
+            print('Event transffered to oll')
+        else:
+            print('Unknown command')
 
 
-def on_error(ws, error):
-    print(error)
+class WebSoketAPIServerHandler:
+    api_server = None
+
+    @staticmethod
+    def on_connected(client, server):
+        print('client connected')
+
+    @staticmethod
+    def on_disconnected(client, server):
+        print('client disconnected')
+
+    @staticmethod
+    def on_message(client, server, message):
+        EventsProcessor.process(message)
+
+    @staticmethod
+    def send_to_all(msg):
+        WebSoketAPIServerHandler.api_server.send_message_to_all(msg)
 
 
-def on_close(ws):
-    print("close")
+class WebSocketCSClientHandler:
+    cs_client = None
+
+    @staticmethod
+    def on_connected(ws):
+        WebSocketCSClientHandler.cs_client = ws
+        print("connected with cs connector")
+
+    @staticmethod
+    def on_disconnected(ws):
+        print("disconnected with cs connector")
+
+    @staticmethod
+    def on_error(ws, error):
+        print(error)
+
+    @staticmethod
+    def on_message(ws, message):
+        EventsProcessor.process(message)
+
+    @staticmethod
+    def send_message(msg):
+        WebSocketCSClientHandler.cs_client.send(msg)
 
 
-def on_open(ws):
-    print("open")
+class WebSocketOLLClientHandler:
+    oll_client = None
+
+    @staticmethod
+    def on_connected(ws):
+        WebSocketOLLClientHandler.oll_client = ws
+        print("connected with oll")
+
+    @staticmethod
+    def on_disconnected(ws):
+        print("disconnected with oll")
+
+    @staticmethod
+    def on_error(ws, error):
+        print(error)
+
+    @staticmethod
+    def on_message(ws, message):
+        EventsProcessor.process(message)
+
+    @staticmethod
+    def send_message(msg):
+        WebSocketOLLClientHandler.oll_client.send(msg)
 
 
-def start_server():
-    application = tornado.web.Application([(r"/", WebSocketListener), ])
-    application.listen(8080)
-    tornado.ioloop.IOLoop.instance().start()
+def start_server_task():
+    ws = WebsocketServer(api_server_port)
+    ws.set_fn_new_client(WebSoketAPIServerHandler.on_connected)
+    ws.set_fn_client_left(WebSoketAPIServerHandler.on_disconnected)
+    ws.set_fn_message_received(WebSoketAPIServerHandler.on_message)
 
-
-def start_client():
-    ws = websocket.WebSocketApp("ws://localhost:8081/ws",
-                                on_message=on_message,
-                                on_error=on_error,
-                                on_close=on_close)
-    ws.on_open = on_open
+    WebSoketAPIServerHandler.api_server = ws
     ws.run_forever()
 
 
-class WebSocketListener(websocket_t.WebSocketHandler):
-    def check_origin(self, origin):
-        return True
+def start_cs_client_task():
+    ws = websocket.WebSocketApp(cs_client_url,
+                                on_message=WebSocketCSClientHandler.on_message,
+                                on_error=WebSocketCSClientHandler.on_error,
+                                on_close=WebSocketCSClientHandler.on_disconnected)
+    ws.on_open = WebSocketCSClientHandler.on_connected
+    ws.run_forever()
 
-    def open(self):
-        print('client connected')
 
-    def on_message(self, message):
-        parts = message.split("\n")
-        print(parts[len(parts) - 1])
+def start_oll_client_task():
+    ws = websocket.WebSocketApp(oll_client_url,
+                                on_message=WebSocketOLLClientHandler.on_message,
+                                on_error=WebSocketOLLClientHandler.on_error,
+                                on_close=WebSocketOLLClientHandler.on_disconnected)
+    ws.on_open = WebSocketOLLClientHandler.on_connected
 
-        if parts[0] == "INSERT":
-            content = json.loads(parts[len(parts) - 1])
-            events.insert_one(content)
-
-    def on_close(self):
-        print('client disconnected')
+    ws.run_forever()
 
 
 if __name__ == "__main__":
-    client_thread = Thread(target=start_client)
-    client_thread.start()
+    t1 = threading.Thread(target=start_server_task)
+    t2 = threading.Thread(target=start_cs_client_task)
+    t3 = threading.Thread(target=start_oll_client_task)
 
-    application = tornado.web.Application([(r"/", WebSocketListener), ])
-    application.listen(8080)
-    tornado.ioloop.IOLoop.instance().start()
-
-    client_thread.join()
+    t1.start()
+    t2.start()
+    t3.start()

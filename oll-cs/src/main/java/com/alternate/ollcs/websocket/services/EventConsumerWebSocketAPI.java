@@ -21,8 +21,6 @@ import java.util.concurrent.CancellationException;
 @Service
 public class EventConsumerWebSocketAPI extends TextWebSocketHandler {
 
-    private final Object lock = new Object();
-
     private static final Logger LOGGER = LoggerFactory.getLogger(EventConsumerWebSocketAPI.class);
     private final ObjectMapper objectMapper;
     private MongoEventsStreamConnector mongoEventsStreamConnector;
@@ -54,13 +52,11 @@ public class EventConsumerWebSocketAPI extends TextWebSocketHandler {
                 .subscribe(e -> {
                     try {
                         String eventString = this.objectMapper.writeValueAsString(e.getEvent());
-                        Message message = Message.fromMessage("MESSAGE", eventString);
-
-                        synchronized (this.lock) {
-                            this.session.sendMessage(new TextMessage(message.toString()));
-                        }
-
-                        this.resumeTokenService.updateToken(e.getResumeToken().toJson());
+                        String resumeTokenString = e.getResumeToken().toJson();
+                        Message message = Message.fromMessage("MESSAGE", resumeTokenString, eventString);
+                        this.sendMessage(message);
+                        // ToDo: Update resume token after client committed offset
+                        this.resumeTokenService.updateToken(resumeTokenString);
                     } catch (IOException e1) {
                         throw new CancellationException();
                     }
@@ -88,5 +84,9 @@ public class EventConsumerWebSocketAPI extends TextWebSocketHandler {
         if ("COMMIT_OFFSET".equals(message.getType())) {
             this.resumeTokenService.updateToken(message.getPayload());
         }
+    }
+
+    private synchronized void sendMessage(Message message) throws IOException {
+        this.session.sendMessage(new TextMessage(message.toString()));
     }
 }

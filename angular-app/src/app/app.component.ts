@@ -24,11 +24,11 @@ export class AppComponent implements OnInit {
       event_name: eventName,
       user: 'demo',
       event_reference: 'mongo-db',
-      event_time: new Date(),
+      event_time: new Date().toISOString(),
       processed: false
     };
 
-    const message = 'INSERT\n' + JSON.stringify(event);
+    const message = 'INSERT\n{}\n' + JSON.stringify(event);
     this.webSocketService.send(message);
     console.log(message);
   }
@@ -38,8 +38,8 @@ export class AppComponent implements OnInit {
 
     this.webSocketService.incoming$.pipe(
       map(d => d.split('\n')),
-      filter(l => l[0] === 'PROCESSED'),
-      map(l => l[1])
+      filter(l => l[0] === 'MESSAGE'),
+      map(l => l[2])
     ).subscribe(d => this.eventStatus[d.event_name] = d.processed);
   }
 }

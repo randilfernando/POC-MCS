@@ -1,6 +1,5 @@
 package com.alternate.djangocs.websocket.services;
 
-import com.alternate.djangocs.common.util.Executors2;
 import com.alternate.djangocs.mongo.services.MongoEventsStreamConnector;
 import com.alternate.djangocs.mongo.services.ResumeTokenService;
 import com.alternate.djangocs.websocket.models.Message;
@@ -18,13 +17,9 @@ import reactor.core.Disposable;
 
 import java.io.IOException;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutorService;
 
 @Service
 public class EventConsumerWebSocketAPI extends TextWebSocketHandler {
-
-    private final Object lock = new Object();
-
     private static final Logger LOGGER = LoggerFactory.getLogger(EventConsumerWebSocketAPI.class);
     private final ObjectMapper objectMapper;
     private MongoEventsStreamConnector mongoEventsStreamConnector;
@@ -32,8 +27,6 @@ public class EventConsumerWebSocketAPI extends TextWebSocketHandler {
 
     private WebSocketSession session;
     private Disposable disposable;
-
-    private ExecutorService executorService = Executors2.newRetrySingleThreadExecutor(5);
 
     @Autowired
     public EventConsumerWebSocketAPI(ObjectMapper objectMapper, MongoEventsStreamConnector mongoEventsStreamConnector,
@@ -59,11 +52,7 @@ public class EventConsumerWebSocketAPI extends TextWebSocketHandler {
                     try {
                         String eventString = this.objectMapper.writeValueAsString(e.getEvent());
                         Message message = Message.fromMessage("MESSAGE", eventString);
-
-                        synchronized (this.lock) {
-                            this.session.sendMessage(new TextMessage(message.toString()));
-                        }
-
+                        this.sendMessage(message);
                         this.resumeTokenService.updateToken(e.getResumeToken().toJson());
                     } catch (IOException e1) {
                         throw new CancellationException();
@@ -84,7 +73,17 @@ public class EventConsumerWebSocketAPI extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) {
+    protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) throws IOException {
         LOGGER.info("message: {} received from client: {}", textMessage.getPayload(), session.getId());
+
+        final Message message = Message.fromString(textMessage.getPayload());
+
+        if ("COMMIT_OFFSET".equals(message.getType())) {
+            this.resumeTokenService.updateToken(message.getPayload());
+        }
+    }
+
+    private synchronized void sendMessage(Message message) throws IOException {
+        this.session.sendMessage(new TextMessage(message.toString()));
     }
 }

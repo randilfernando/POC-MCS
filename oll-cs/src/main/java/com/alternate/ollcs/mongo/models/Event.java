@@ -1,15 +1,15 @@
 package com.alternate.ollcs.mongo.models;
 
 public class Event {
-    private String _id;
+    private String id;
     private String eventName;
     private String user;
     private String eventReference;
     private String eventTime;
     private boolean processed;
 
-    public String get_id() {
-        return _id;
+    public String getId() {
+        return id;
     }
 
     public String getEventName() {
@@ -32,8 +32,8 @@ public class Event {
         return processed;
     }
 
-    public Event withId(String _id) {
-        this._id = _id;
+    public Event withId(String id) {
+        this.id = id;
         return this;
     }
 
