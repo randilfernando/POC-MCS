@@ -11,7 +11,7 @@ export class AppComponent implements OnInit {
   eventStatus = {
     AddExample: false,
     CopyPaste: false,
-    DeleteField: false
+    AddSearch: false
   };
 
   public constructor(private webSocketService: WebSocketService) {
